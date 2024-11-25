@@ -5,7 +5,7 @@
 void set_pixel(unsigned int x, unsigned int y, unsigned int color);
 void create_snake(unsigned int x, unsigned int y);
 void move_snake(unsigned int x, unsigned int y);
-unsigned int random_number(unsigned int seed, unsigned int mod);
+unsigned int lfsr_generate(unsigned int *seed);
 void Create_apple(unsigned int *seed);
 void draw_game_over();
 
