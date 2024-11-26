@@ -1,74 +1,65 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
-typedef struct NodeStruct {
-    int data;
-    struct NodeStruct *next;
-} Node;
+#define MAX_QUEUE_SIZE 1000 // Tamaño máximo de la cola
 
-typedef struct StructQueue {
-    Node *front;
-    Node *back;
-    int size;
-} *Queue;
+typedef struct {
+    int data[MAX_QUEUE_SIZE]; // Arreglo fijo para almacenar los elementos
+    int front;                // Índice del frente de la cola
+    int back;                 // Índice del final de la cola
+    int size;                 // Cantidad de elementos en la cola
+} Queue;
 
-Queue createQueue() {
-    Queue newQueue = malloc(sizeof(struct StructQueue));
-    if (newQueue == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-        exit(EXIT_FAILURE);
-    }
-    newQueue->front = NULL;
-    newQueue->back = NULL;
-    newQueue->size = 0;
-    return newQueue;
+void initializeQueue(Queue *q) {
+    q->front = 0;
+    q->back = -1;
+    q->size = 0;
 }
 
-void enQueue(Queue q, int value) {
-    Node *newNode = malloc(sizeof(Node));
-    if (newNode == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-        exit(EXIT_FAILURE);
+bool isEmpty(Queue *q) {
+    return q->size == 0;
+}
+
+bool isFull(Queue *q) {
+    return q->size == MAX_QUEUE_SIZE;
+}
+
+// Función para insertar un elemento en la cola
+void enQueue(Queue *q, int value) {
+    if (isFull(q)) {
+        printf("Error: La cola está llena\n");
+        return;
     }
-    newNode->data = value;
-    newNode->next = NULL;
-    if (q->size != 0) {
-        q->back->next = newNode;
-    } else {
-        q->front = newNode;
-    }
-    q->back = newNode;
+    q->back = (q->back + 1) % MAX_QUEUE_SIZE; // Movimiento circular
+    q->data[q->back] = value;
     q->size++;
 }
 
-int deQueue(Queue q) {
-    if (q->size == 0) {
-        fprintf(stderr, "Queue is empty\n");
-        return -1; // Indicate error
+// Función para eliminar un elemento de la cola
+int deQueue(Queue *q) {
+    if (isEmpty(q)) {
+        printf("Error: La cola está vacía\n");
+        return -1; // Indica error
     }
-    Node *temp = q->front;
-    int data = temp->data;
-    q->front = q->front->next;
-    free(temp);
+    int value = q->data[q->front];
+    q->front = (q->front + 1) % MAX_QUEUE_SIZE; // Movimiento circular
     q->size--;
-    if (q->size == 0) {
-        q->back = NULL; // Reset back if queue is empty
-    }
-    return data;
+    return value;
 }
 
+// Función principal para probar la implementación
 int main() {
-    Queue queue = createQueue();
+    Queue queue;
+    initializeQueue(&queue);
 
-    enQueue(queue, 10);
-    enQueue(queue, 20);
-    enQueue(queue, 30);
+    enQueue(&queue, 10);
+    enQueue(&queue, 20);
+    enQueue(&queue, 30);
 
-    printf("Dequeued: %d\n", deQueue(queue));
-    printf("Dequeued: %d\n", deQueue(queue));
-    printf("Dequeued: %d\n", deQueue(queue));
-    printf("Dequeued: %d\n", deQueue(queue)); // Test empty queue
+    printf("Dequeued: %d\n", deQueue(&queue));
+    printf("Dequeued: %d\n", deQueue(&queue));
+    printf("Dequeued: %d\n", deQueue(&queue));
+    printf("Dequeued: %d\n", deQueue(&queue)); // Prueba con cola vacía
 
-    free(queue); // Free the queue structure
     return 0;
 }
