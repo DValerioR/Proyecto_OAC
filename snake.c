@@ -1,6 +1,20 @@
 #include "ripes_system.h"
+#include <stdio.h>
+#include <stdbool.h>
 
 #define BLUE_COLOR 0x000000FF
+#define MAX_QUEUE_SIZE 1000 // Tamaño máximo de la cola
+#define SNAKE_COLOR = 0x0000ff00 // hay que usar estos para faciliatar cutomizaciones alrato o talvez ponerlos en main o algo asi
+#define APPLE_COLOR = 0x00ff0000
+
+typedef struct {
+    int data[MAX_QUEUE_SIZE]; // Arreglo fijo para almacenar los elementos
+    int front;                // Índice del frente de la cola
+    int back;                 // Índice del final de la cola
+    int size;                 // Cantidad de elementos en la cola
+} Queue;
+
+unsigned int apple_x, apple_y;
 
 void set_pixel(unsigned int x, unsigned int y, unsigned int color);
 void create_snake(unsigned int x, unsigned int y);
@@ -24,6 +38,9 @@ void main(){
     unsigned int x = 17;
     unsigned int y = 12;
     
+    Queue q;
+    initializeQueue(&q);
+
     create_snake(x,y);
     unsigned int seed = 0x56;
     Create_apple(&seed);
@@ -31,22 +48,22 @@ void main(){
         if (*up == 1 && kup == 0){
             y -= 1;
             kup = 1;
-            move_snake(x,y);
+            move_snake(x,y,&q);
         }
         else if (*down == 1 && kdp == 0){
             y += 1;
             kdp = 1;
-            move_snake(x,y);
+            move_snake(x,y,&q);
         }
         else if (*left == 1 && klp == 0){
             x -= 1;
             klp = 1;
-            move_snake(x,y);
+            move_snake(x,y,&q);
         }
         else if (*right == 1 && krp == 0){
             x += 1;
             krp = 1;
-            move_snake(x,y);
+            move_snake(x,y,&q);
         }
         
         if (*up == 0){
@@ -65,6 +82,7 @@ void main(){
     }
     
 void set_pixel(unsigned int x, unsigned int y, unsigned int color){
+    // antes de pitar la casiila hay que ver si el color de esta es la de color manzazna 
     unsigned int *led_base = LED_MATRIX_0_BASE;
     unsigned int *address = 0;
     unsigned int offset = 0;
@@ -74,10 +92,20 @@ void set_pixel(unsigned int x, unsigned int y, unsigned int color){
 }
 
 void create_snake(unsigned int x, unsigned int y){
+    /*
+    int hastouchaplle = set_pixel(x, y, 0x0000ff00); y queiro que me diga set pixel si algun pixel es manzana
+    */
     set_pixel(x, y, 0x0000ff00);
     set_pixel(x + 1, y, 0x0000ff00);
     set_pixel(x, y + 1, 0x0000ff00);
     set_pixel(x + 1, y + 1, 0x0000ff00);
+}
+
+void delete_snake(unsigned int x, unsigned int y){
+    set_pixel(x, y, 0x00000000);
+    set_pixel(x + 1, y, 0x00000000);
+    set_pixel(x, y + 1, 0x00000000);
+    set_pixel(x + 1, y + 1, 0x00000000);
 }
 
 unsigned int lfsr_generate(unsigned int *seed) {
@@ -88,24 +116,38 @@ unsigned int lfsr_generate(unsigned int *seed) {
 }
 
 void Create_apple(unsigned int *seed) {
-    // Coordenadas l�mite de la matriz LED
-    unsigned int max_x = 33; // M�ximo v�lido para x (34 - 1)
-    unsigned int max_y = 23; // M�ximo v�lido para y (24 - 1)
+    unsigned int max_x = 33;
+    unsigned int max_y = 23;
 
-    // Generamos posiciones aleatorias dentro del rango
-    unsigned int x = lfsr_generate(seed) % (max_x + 1);
-    unsigned int y = lfsr_generate(seed) % (max_y + 1);
+    apple_x = lfsr_generate(seed) % (max_x + 1);
+    apple_y = lfsr_generate(seed) % (max_y + 1);
 
-    // Dibujamos el cuadrado de 2x2 que representa la "manzana"
-    set_pixel(x, y, 0x00FF0000);       // Color rojo (RGB) para la manzana
-    set_pixel(x + 1, y, 0x00FF0000);
-    set_pixel(x, y + 1, 0x00FF0000);
-    set_pixel(x + 1, y + 1, 0x00FF0000);
+    set_pixel(apple_x, apple_y, 0x00FF0000);
+    set_pixel(apple_x + 1, apple_y, 0x00FF0000);
+    set_pixel(apple_x, apple_y + 1, 0x00FF0000);
+    set_pixel(apple_x + 1, apple_y + 1, 0x00FF0000);
 }
 
-void move_snake(unsigned int x, unsigned int y){
+void Delete_apple() {
+    set_pixel(apple_x, apple_y, 0x00000000);
+    set_pixel(apple_x + 1, apple_y, 0x00000000);
+    set_pixel(apple_x, apple_y + 1, 0x00000000);
+    set_pixel(apple_x + 1, apple_y + 1, 0x00000000);
+}
+
+void move_snake(unsigned int x, unsigned int y,Queue *q){
+    //int grow = create_snake(x,y); quiero que create snake me diga si toco la manzana
     create_snake(x,y);
+    enQueue(q,x);
+    enQueue(q,y);
+    if (false){
+    x=deQueue(q);
+    y=deQueue(q);
+    delete_snake(x,y);
     }
+
+    }
+
 void draw_game_over() {
     // G
     int g_coords[][2] = {{3, 1}, {4, 1}, {5, 1}, {6, 1}, {7, 1},
@@ -193,4 +235,39 @@ void draw_game_over() {
     for (i = 0; i < sizeof(r_coords) / (2 * sizeof(int)); i++) {
         set_pixel(r_coords[i][0], r_coords[i][1], BLUE_COLOR);
     }
+}
+
+void initializeQueue(Queue *q) {
+    q->front = 0;
+    q->back = -1;
+    q->size = 0;
+}
+
+bool isEmpty(Queue *q) {
+    return q->size == 0;
+}
+
+bool isFull(Queue *q) {
+    return q->size == MAX_QUEUE_SIZE;
+}
+
+void enQueue(Queue *q, int value) {
+    if (isFull(q)) {
+        printf("Error: La cola está llena\n");
+        return;
+    }
+    q->back = (q->back + 1) % MAX_QUEUE_SIZE; // Movimiento circular
+    q->data[q->back] = value;
+    q->size++;
+}
+
+int deQueue(Queue *q) {
+    if (isEmpty(q)) {
+        printf("Error: La cola está vacía\n");
+        return -1; // Indica error
+    }
+    int value = q->data[q->front];
+    q->front = (q->front + 1) % MAX_QUEUE_SIZE; // Movimiento circular
+    q->size--;
+    return value;
 }
