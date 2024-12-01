@@ -35,7 +35,11 @@ bool isFull(Queue *q) {
 
 void enQueue(Queue *q, int value) {
     if (isFull(q)) {
+<<<<<<< HEAD
         printf("Error: La cola está llena\n");
+=======
+        printf("Error: La cola estÃ¡ llena\n");
+>>>>>>> 577800186bf575cce059538bc220909662adea8d
         return;
     }
     q->back = (q->back + 1) % MAX_QUEUE_SIZE; // Movimiento circular
@@ -45,7 +49,11 @@ void enQueue(Queue *q, int value) {
 
 int deQueue(Queue *q) {
     if (isEmpty(q)) {
+<<<<<<< HEAD
         printf("Error: La cola está vacía\n");
+=======
+        printf("Error: La cola estÃ¡ vacÃ­a\n");
+>>>>>>> 577800186bf575cce059538bc220909662adea8d
         return -1; // Indica error
     }
     int value = q->data[q->front];
@@ -62,8 +70,13 @@ int set_pixel(unsigned int x, unsigned int y, unsigned int color) {
 }
 
 void apple_create(unsigned int seed) {
+<<<<<<< HEAD
     unsigned int max_x = 34;  // El rango debe ser múltiplo de 2 para mantener pares
     unsigned int max_y = 24;  // Ajuste para mantener dentro del rango válido
+=======
+    unsigned int max_x = 34;  // El rango debe ser mÃºltiplo de 2 para mantener pares
+    unsigned int max_y = 24;  // Ajuste para mantener dentro del rango vÃ¡lido
+>>>>>>> 577800186bf575cce059538bc220909662adea8d
     unsigned int apple_x, apple_y;
     unsigned int *led_base = LED_MATRIX_0_BASE;
     unsigned int offset;
@@ -71,24 +84,40 @@ void apple_create(unsigned int seed) {
 
     srand(seed);  // Inicializa la semilla de rand()
 
+<<<<<<< HEAD
     // Generar una nueva posición para la manzana
+=======
+    // Generar una nueva posiciÃ³n para la manzana
+>>>>>>> 577800186bf575cce059538bc220909662adea8d
     do {
         apple_x = (rand() % ((max_x / 2) + 1)) * 2;  // Genera posiciones pares para apple_x
         apple_y = (rand() % ((max_y / 2) + 1)) * 2;  // Genera posiciones pares para apple_y
 
+<<<<<<< HEAD
         // Calcular la dirección de memoria correspondiente a la posición
+=======
+        // Calcular la direcciÃ³n de memoria correspondiente a la posiciÃ³n
+>>>>>>> 577800186bf575cce059538bc220909662adea8d
         offset = apple_x + apple_y * LED_MATRIX_0_WIDTH;
         address = led_base + offset;
     } while (*address == SNAKE_COLOR);  // Evitar que la manzana aparezca sobre la serpiente
 
+<<<<<<< HEAD
     // Poner la manzana en la nueva posición
+=======
+    // Poner la manzana en la nueva posiciÃ³n
+>>>>>>> 577800186bf575cce059538bc220909662adea8d
     set_pixel(apple_x, apple_y, APPLE_COLOR);
     set_pixel(apple_x + 1, apple_y, APPLE_COLOR);
     set_pixel(apple_x, apple_y + 1, APPLE_COLOR);
     set_pixel(apple_x + 1, apple_y + 1, APPLE_COLOR);
 }
 
+<<<<<<< HEAD
 // Función para eliminar una parte de la serpiente
+=======
+// FunciÃ³n para eliminar una parte de la serpiente
+>>>>>>> 577800186bf575cce059538bc220909662adea8d
 void apple_delete(unsigned int x, unsigned int y) {
     // Borra la parte de la serpiente
     set_pixel(x, y, 0x00000000);
@@ -96,7 +125,11 @@ void apple_delete(unsigned int x, unsigned int y) {
     set_pixel(x, y + 1, 0x00000000);
     set_pixel(x + 1, y + 1, 0x00000000);
 
+<<<<<<< HEAD
     // Crear una nueva manzana en una nueva posición
+=======
+    // Crear una nueva manzana en una nueva posiciÃ³n
+>>>>>>> 577800186bf575cce059538bc220909662adea8d
     apple_create(rand());  // Usa rand() para generar la semilla
 }
 
@@ -239,16 +272,25 @@ void main() {
     unsigned int x = 16, y = 12;
     Queue q;
     initializeQueue(&q);
+<<<<<<< HEAD
     enQueue(&q, x - 2);
     enQueue(&q, y);
     enQueue(&q, x);
     enQueue(&q, y);
     snake_create(x - 2, y);
+=======
+    enQueue(&q, x-2);
+    enQueue(&q, y);
+    enQueue(&q, x);
+    enQueue(&q, y);
+    snake_create(x-2, y);
+>>>>>>> 577800186bf575cce059538bc220909662adea8d
     snake_create(x, y);
 
     unsigned int seed = 0x48;
     apple_create(seed);
 
+<<<<<<< HEAD
     // Configurar dirección inicial (derecha)
     krp = 1;
 
@@ -300,5 +342,44 @@ void main() {
 
         // Introducir un retraso para controlar la velocidad de movimiento
         for (volatile int delay = 0; delay < 5000; delay++);
+=======
+    while (1) {
+        int moved = 0;
+
+        // Detectar entrada del jugador
+        if (*up && !kup) {
+         kup = 1;
+         if(y==0){
+            draw_game_over();exit(0);}
+         y=y-2;
+         snake_move(x, y, &q);
+        }if (*down && !kdp) {
+           kdp = 1; 
+           y=y+2;
+           if(y>24){
+            draw_game_over();
+            exit(0);}
+           snake_move(x, y, &q);
+        }if (*left && !klp) {
+            klp = 1;
+            if(x==0){
+            draw_game_over();
+            exit(0);}
+            x=x-2;
+            snake_move(x, y, &q);
+        }if (*right && !krp) {
+            krp = 1;
+            x=x+2;
+            if(x>34){
+            draw_game_over();
+            exit(0);}
+            snake_move(x, y, &q);
+        }
+        // Resetear los estados de los botones
+       if (*up == 0) kup = 0;
+        if (*down == 0) kdp = 0;
+        if (*left == 0) klp = 0;
+        if (*right == 0) krp = 0;
+>>>>>>> 577800186bf575cce059538bc220909662adea8d
     }
 }
