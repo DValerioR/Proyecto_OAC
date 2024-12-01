@@ -1,11 +1,14 @@
 #include "ripes_system.h"
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
-#define BLUE_COLOR 0x000000FF
+
+//constantes 
+#define MAX_QUEUE_SIZE 1000
 #define SNAKE_COLOR 0x0000FF00
 #define APPLE_COLOR 0x00FF0000
-#define MAX_QUEUE_SIZE 1000 // Tamaño máximo de la cola
+#define BLUE_COLOR 0x000000FF
 
 typedef struct {
     int data[MAX_QUEUE_SIZE]; // Arreglo fijo para almacenar los elementos
@@ -14,99 +17,94 @@ typedef struct {
     int size;                 // Cantidad de elementos en la cola
 } Queue;
 
-// Variables globales
 unsigned int apple_x, apple_y;
 
-// Declaración de funciones
-int set_pixel(unsigned int x, unsigned int y, unsigned int color);
-int snake_create(unsigned int x, unsigned int y);
-void snake_delete(unsigned int x, unsigned int y);
-void snake_move(unsigned int x, unsigned int y, Queue *q);
-unsigned int lfsr_generate(unsigned int *seed);
-void apple_create(unsigned int *seed);
-void apple_delete();
-void draw_game_over();
-void initializeQueue(Queue *q);
-bool isEmpty(Queue *q);
-bool isFull(Queue *q);
-void enQueue(Queue *q, int value);
-int deQueue(Queue *q);
-
-void main() {
-    unsigned int *up = D_PAD_0_UP;
-    unsigned int *down = D_PAD_0_DOWN;
-    unsigned int *left = D_PAD_0_LEFT;
-    unsigned int *right = D_PAD_0_RIGHT;
-
-    unsigned int kup = 0, kdp = 0, klp = 0, krp = 0;
-
-    unsigned int x = 16, y = 12;
-
-    Queue q;
-    initializeQueue(&q);
-
-    snake_create(x, y);
-    unsigned int seed = 0x56;
-    apple_create(&seed);
-
-    // Dirección inicial
-    int dx = 2, dy = 0; 
-
-    while (1) {
-        int moved = 0;
-
-        // Detectar entrada del jugador
-        if (*up && !kup) {
-            dx = 0; dy = -2; kup = 1; moved = 1;
-        } else if (*down && !kdp) {
-            dx = 0; dy = 2; kdp = 1; moved = 1;
-        } else if (*left && !klp) {
-            dx = -2; dy = 0; klp = 1; moved = 1;
-        } else if (*right && !krp) {
-            dx = 2; dy = 0; krp = 1; moved = 1;
-        }
-
-        // Resetear los estados de los botones
-        kup = *up ? 1 : 0;
-        kdp = *down ? 1 : 0;
-        klp = *left ? 1 : 0;
-        krp = *right ? 1 : 0;
-
-        // Si no se detectó movimiento, usar la última dirección
-        if (!moved) delay_ms(300); 
-
-        // Mover la serpiente
-        x += dx; y += dy;
-        snake_move(x, y, &q);
-
-        delay_ms(100); // Controlar la velocidad general del juego
-    }
+void initializeQueue(Queue *q) {
+    q->front = 0;
+    q->back = -1;
+    q->size = 0;
 }
 
-// Otras funciones
+bool isEmpty(Queue *q) {
+    return q->size == 0;
+}
+
+bool isFull(Queue *q) {
+    return q->size == MAX_QUEUE_SIZE;
+}
+
+void enQueue(Queue *q, int value) {
+    if (isFull(q)) {
+        printf("Error: La cola está llena\n");
+        return;
+    }
+    q->back = (q->back + 1) % MAX_QUEUE_SIZE; // Movimiento circular
+    q->data[q->back] = value;
+    q->size++;
+}
+
+int deQueue(Queue *q) {
+    if (isEmpty(q)) {
+        printf("Error: La cola está vacía\n");
+        return -1; // Indica error
+    }
+    int value = q->data[q->front];
+    q->front = (q->front + 1) % MAX_QUEUE_SIZE; // Movimiento circular
+    q->size--;
+    return value;
+}
 
 int set_pixel(unsigned int x, unsigned int y, unsigned int color) {
     unsigned int *led_base = LED_MATRIX_0_BASE;
     unsigned int offset = x + y * LED_MATRIX_0_WIDTH;
     unsigned int *address = led_base + offset;
-
-    if (color == SNAKE_COLOR) {
-        if (*address == APPLE_COLOR) return 1; // Colisión con manzana
-        else if (*address == SNAKE_COLOR) return 100; // Colisión consigo misma
-    } else if (color == APPLE_COLOR && *address == SNAKE_COLOR) {
-        return 1; // Colisión con serpiente
-    }
-
     *address = color;
-    return 0;
+}
+
+void apple_create(unsigned int seed) {
+    unsigned int max_x = 34;  // El rango debe ser múltiplo de 2 para mantener pares
+    unsigned int max_y = 24;  // Ajuste para mantener dentro del rango válido
+    unsigned int apple_x, apple_y;
+    unsigned int *led_base = LED_MATRIX_0_BASE;
+    unsigned int offset;
+    unsigned int *address;
+
+    srand(seed);  // Inicializa la semilla de rand()
+
+    // Generar una nueva posición para la manzana
+    do {
+        apple_x = (rand() % ((max_x / 2) + 1)) * 2;  // Genera posiciones pares para apple_x
+        apple_y = (rand() % ((max_y / 2) + 1)) * 2;  // Genera posiciones pares para apple_y
+
+        // Calcular la dirección de memoria correspondiente a la posición
+        offset = apple_x + apple_y * LED_MATRIX_0_WIDTH;
+        address = led_base + offset;
+    } while (*address == SNAKE_COLOR);  // Evitar que la manzana aparezca sobre la serpiente
+
+    // Poner la manzana en la nueva posición
+    set_pixel(apple_x, apple_y, APPLE_COLOR);
+    set_pixel(apple_x + 1, apple_y, APPLE_COLOR);
+    set_pixel(apple_x, apple_y + 1, APPLE_COLOR);
+    set_pixel(apple_x + 1, apple_y + 1, APPLE_COLOR);
+}
+
+// Función para eliminar una parte de la serpiente
+void apple_delete(unsigned int x, unsigned int y) {
+    // Borra la parte de la serpiente
+    set_pixel(x, y, 0x00000000);
+    set_pixel(x + 1, y, 0x00000000);
+    set_pixel(x, y + 1, 0x00000000);
+    set_pixel(x + 1, y + 1, 0x00000000);
+
+    // Crear una nueva manzana en una nueva posición
+    apple_create(rand());  // Usa rand() para generar la semilla
 }
 
 int snake_create(unsigned int x, unsigned int y) {
-    int collision = set_pixel(x, y, SNAKE_COLOR);
+    set_pixel(x, y, SNAKE_COLOR);
     set_pixel(x + 1, y, SNAKE_COLOR);
     set_pixel(x, y + 1, SNAKE_COLOR);
     set_pixel(x + 1, y + 1, SNAKE_COLOR);
-    return collision;
 }
 
 void snake_delete(unsigned int x, unsigned int y) {
@@ -116,45 +114,27 @@ void snake_delete(unsigned int x, unsigned int y) {
     set_pixel(x + 1, y + 1, 0x00000000);
 }
 
-unsigned int lfsr_generate(unsigned int *seed) {
-    unsigned int bit = ((*seed >> 1) ^ (*seed >> 2)) & 1;
-    *seed = (*seed >> 1) | (bit << 7);
-    return *seed;
-}
-
-void apple_create(unsigned int *seed) {
-    unsigned int max_x = 33, max_y = 23;
-    apple_x = lfsr_generate(seed) % (max_x + 1);
-    apple_y = lfsr_generate(seed) % (max_y + 1);
-    set_pixel(apple_x, apple_y, APPLE_COLOR);
-}
-
-void apple_delete() {
-    set_pixel(apple_x, apple_y, 0x00000000);
-}
-
 void snake_move(unsigned int x, unsigned int y, Queue *q) {
-    if (x >= 35 || y >= 25 || x < 0 || y < 0) {
-        draw_game_over();
-        return;
-    }
-
-    int collision = snake_create(x, y);
-    if (collision == 100) {
-        draw_game_over();
-        return;
-    }
-
+    int grow = 1;
+    int colition = 0;
+    unsigned int *led_base = LED_MATRIX_0_BASE;
+    unsigned int offset = x + y * LED_MATRIX_0_WIDTH;
+    unsigned int *address = led_base + offset;
+     if (*address == APPLE_COLOR){
+             grow = 0;
+           apple_delete(x,y);
+         }
+     if (*address == SNAKE_COLOR){
+              draw_game_over();exit(0);
+         }
+    snake_create(x, y);
     enQueue(q, x);
     enQueue(q, y);
-
-    if (!collision) {
-        unsigned int old_x = deQueue(q);
-        unsigned int old_y = deQueue(q);
-        snake_delete(old_x, old_y);
-    } else {
-        unsigned int seed = 0x56;
-        apple_create(&seed);
+    if (grow)
+    {
+    unsigned int old_x = deQueue(q);
+    unsigned int old_y = deQueue(q);
+    snake_delete(old_x, old_y);
     }
 }
 
@@ -247,37 +227,64 @@ void draw_game_over() {
     }
 }
 
-void initializeQueue(Queue *q) {
-    q->front = 0;
-    q->back = -1;
-    q->size = 0;
-}
 
-bool isEmpty(Queue *q) {
-    return q->size == 0;
-}
+void main() {
+    unsigned int *up = (unsigned int *)D_PAD_0_UP;
+    unsigned int *down = (unsigned int *)D_PAD_0_DOWN;
+    unsigned int *left = (unsigned int *)D_PAD_0_LEFT;
+    unsigned int *right = (unsigned int *)D_PAD_0_RIGHT;
 
-bool isFull(Queue *q) {
-    return q->size == MAX_QUEUE_SIZE;
-}
+    unsigned int kup = 0, kdp = 0, klp = 0, krp = 0;
 
-void enQueue(Queue *q, int value) {
-    if (isFull(q)) {
-        printf("Error: La cola está llena\n");
-        return;
+    unsigned int x = 16, y = 12;
+    Queue q;
+    initializeQueue(&q);
+    enQueue(&q, x-2);
+    enQueue(&q, y);
+    enQueue(&q, x);
+    enQueue(&q, y);
+    snake_create(x-2, y);
+    snake_create(x, y);
+
+    unsigned int seed = 0x48;
+    apple_create(seed);
+
+    while (1) {
+        int moved = 0;
+
+        // Detectar entrada del jugador
+        if (*up && !kup) {
+         kup = 1;
+         if(y==0){
+            draw_game_over();exit(0);}
+         y=y-2;
+         snake_move(x, y, &q);
+        }if (*down && !kdp) {
+           kdp = 1; 
+           y=y+2;
+           if(y>24){
+            draw_game_over();
+            exit(0);}
+           snake_move(x, y, &q);
+        }if (*left && !klp) {
+            klp = 1;
+            if(x==0){
+            draw_game_over();
+            exit(0);}
+            x=x-2;
+            snake_move(x, y, &q);
+        }if (*right && !krp) {
+            krp = 1;
+            x=x+2;
+            if(x>34){
+            draw_game_over();
+            exit(0);}
+            snake_move(x, y, &q);
+        }
+        // Resetear los estados de los botones
+       if (*up == 0) kup = 0;
+        if (*down == 0) kdp = 0;
+        if (*left == 0) klp = 0;
+        if (*right == 0) krp = 0;
     }
-    q->back = (q->back + 1) % MAX_QUEUE_SIZE; // Movimiento circular
-    q->data[q->back] = value;
-    q->size++;
-}
-
-int deQueue(Queue *q) {
-    if (isEmpty(q)) {
-        printf("Error: La cola está vacía\n");
-        return -1; // Indica error
-    }
-    int value = q->data[q->front];
-    q->front = (q->front + 1) % MAX_QUEUE_SIZE; // Movimiento circular
-    q->size--;
-    return value;
 }
