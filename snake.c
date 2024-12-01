@@ -4,8 +4,6 @@
 
 #define BLUE_COLOR 0x000000FF
 #define MAX_QUEUE_SIZE 1000 // Tamaño máximo de la cola
-#define SNAKE_COLOR = 0x0000ff00 // hay que usar estos para faciliatar cutomizaciones alrato o talvez ponerlos en main o algo asi
-#define APPLE_COLOR = 0x00ff0000
 
 typedef struct {
     int data[MAX_QUEUE_SIZE]; // Arreglo fijo para almacenar los elementos
@@ -14,7 +12,10 @@ typedef struct {
     int size;                 // Cantidad de elementos en la cola
 } Queue;
 
-unsigned int apple_x, apple_y;
+unsigned int apple_x, apple_y; // posision de la manzana
+unsigned int SNAKE_COLOR = 0x0000ff00 // hay que usar estos para faciliatar cutomizaciones alrato o talvez ponerlos en main o algo asi
+unsigned int APPLE_COLOR = 0x00ff0000
+
 
 void set_pixel(unsigned int x, unsigned int y, unsigned int color);
 void create_snake(unsigned int x, unsigned int y);
@@ -98,8 +99,8 @@ void create_snake(unsigned int x, unsigned int y){
     */
    x+=1;
    y+=1;
-    set_pixel(x, y, 0x0000ff00);
-    set_pixel(x + 1, y, 0x0000ff00);
+    set_pixel(x, y, SNAKE_COLOR);
+    set_pixel(x + 1, y, SNAKE_COLOR);
     set_pixel(x, y + 1, 0x0000ff00);
     set_pixel(x + 1, y + 1, 0x0000ff00);
 }
