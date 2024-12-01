@@ -3,6 +3,8 @@
 #include <stdbool.h>
 
 #define BLUE_COLOR 0x000000FF
+#define SNAKE_COLOR 0x0000FF00
+#define APPLE_COLOR 0x00FF0000
 #define MAX_QUEUE_SIZE 1000 // Tamaño máximo de la cola
 
 typedef struct {
@@ -12,100 +14,102 @@ typedef struct {
     int size;                 // Cantidad de elementos en la cola
 } Queue;
 
-unsigned int apple_x, apple_y; // posision de la manzana
-unsigned int SNAKE_COLOR = 0x0000ff00 // hay que usar estos para faciliatar cutomizaciones alrato o talvez ponerlos en main o algo asi
-unsigned int APPLE_COLOR = 0x00ff0000
+// Variables globales
+unsigned int apple_x, apple_y;
 
-
-void set_pixel(unsigned int x, unsigned int y, unsigned int color);
-void create_snake(unsigned int x, unsigned int y);
-void move_snake(unsigned int x, unsigned int y);
+// Declaración de funciones
+int set_pixel(unsigned int x, unsigned int y, unsigned int color);
+int snake_create(unsigned int x, unsigned int y);
+void snake_delete(unsigned int x, unsigned int y);
+void snake_move(unsigned int x, unsigned int y, Queue *q);
 unsigned int lfsr_generate(unsigned int *seed);
-void Create_apple(unsigned int *seed);
+void apple_create(unsigned int *seed);
+void apple_delete();
 void draw_game_over();
+void initializeQueue(Queue *q);
+bool isEmpty(Queue *q);
+bool isFull(Queue *q);
+void enQueue(Queue *q, int value);
+int deQueue(Queue *q);
 
-void main(){
+void main() {
     unsigned int *up = D_PAD_0_UP;
     unsigned int *down = D_PAD_0_DOWN;
     unsigned int *left = D_PAD_0_LEFT;
     unsigned int *right = D_PAD_0_RIGHT;
-    
-    
-    unsigned int kup = 0;
-    unsigned int kdp = 0;
-    unsigned int klp = 0;
-    unsigned int krp = 0;
-    
-    unsigned int x = 16;
-    unsigned int y = 11;
-    
+
+    unsigned int kup = 0, kdp = 0, klp = 0, krp = 0;
+
+    unsigned int x = 16, y = 12;
+
     Queue q;
     initializeQueue(&q);
 
-    create_snake(x,y);
+    snake_create(x, y);
     unsigned int seed = 0x56;
-    Create_apple(&seed);
-    while(1){
-        if (*up == 1 && kup == 0){
-            y -= 1;
-            kup = 1;
-            move_snake(x,y,&q);
+    apple_create(&seed);
+
+    // Dirección inicial
+    int dx = 2, dy = 0; 
+
+    while (1) {
+        int moved = 0;
+
+        // Detectar entrada del jugador
+        if (*up && !kup) {
+            dx = 0; dy = -2; kup = 1; moved = 1;
+        } else if (*down && !kdp) {
+            dx = 0; dy = 2; kdp = 1; moved = 1;
+        } else if (*left && !klp) {
+            dx = -2; dy = 0; klp = 1; moved = 1;
+        } else if (*right && !krp) {
+            dx = 2; dy = 0; krp = 1; moved = 1;
         }
-        else if (*down == 1 && kdp == 0){
-            y += 1;
-            kdp = 1;
-            move_snake(x,y,&q);
-        }
-        else if (*left == 1 && klp == 0){
-            x -= 1;
-            klp = 1;
-            move_snake(x,y,&q);
-        }
-        else if (*right == 1 && krp == 0){
-            x += 1;
-            krp = 1;
-            move_snake(x,y,&q);
-        }
-        
-        if (*up == 0){
-            kup = 0;
-        }
-        if (*down == 0){
-            kdp = 0;
-        }
-        if (*left == 0){
-            klp = 0;
-        }
-        if (*right == 0){
-            krp = 0;
-        }
+
+        // Resetear los estados de los botones
+        kup = *up ? 1 : 0;
+        kdp = *down ? 1 : 0;
+        klp = *left ? 1 : 0;
+        krp = *right ? 1 : 0;
+
+        // Si no se detectó movimiento, usar la última dirección
+        if (!moved) delay_ms(300); 
+
+        // Mover la serpiente
+        x += dx; y += dy;
+        snake_move(x, y, &q);
+
+        delay_ms(100); // Controlar la velocidad general del juego
     }
-    }
-    
-void set_pixel(unsigned int x, unsigned int y, unsigned int color){
-    // antes de pitar la casiila hay que ver si el color de esta es la de color manzazna 
+}
+
+// Otras funciones
+
+int set_pixel(unsigned int x, unsigned int y, unsigned int color) {
     unsigned int *led_base = LED_MATRIX_0_BASE;
-    unsigned int *address = 0;
-    unsigned int offset = 0;
-    offset = x + y*LED_MATRIX_0_WIDTH;
-    address = led_base + offset;
-    
-    *(address) = color;
+    unsigned int offset = x + y * LED_MATRIX_0_WIDTH;
+    unsigned int *address = led_base + offset;
+
+    if (color == SNAKE_COLOR) {
+        if (*address == APPLE_COLOR) return 1; // Colisión con manzana
+        else if (*address == SNAKE_COLOR) return 100; // Colisión consigo misma
+    } else if (color == APPLE_COLOR && *address == SNAKE_COLOR) {
+        return 1; // Colisión con serpiente
+    }
+
+    *address = color;
+    return 0;
 }
 
-void create_snake(unsigned int x, unsigned int y){
-    /*
-    int hastouchaplle = set_pixel(x, y, 0x0000ff00); y queiro que me diga set pixel si algun pixel es manzana
-    */
-   x+=1;
-   y+=1;
-    set_pixel(x, y, SNAKE_COLOR);
+int snake_create(unsigned int x, unsigned int y) {
+    int collision = set_pixel(x, y, SNAKE_COLOR);
     set_pixel(x + 1, y, SNAKE_COLOR);
-    set_pixel(x, y + 1, 0x0000ff00);
-    set_pixel(x + 1, y + 1, 0x0000ff00);
+    set_pixel(x, y + 1, SNAKE_COLOR);
+    set_pixel(x + 1, y + 1, SNAKE_COLOR);
+    return collision;
 }
 
-void delete_snake(unsigned int x, unsigned int y){
+void snake_delete(unsigned int x, unsigned int y) {
     set_pixel(x, y, 0x00000000);
     set_pixel(x + 1, y, 0x00000000);
     set_pixel(x, y + 1, 0x00000000);
@@ -113,44 +117,46 @@ void delete_snake(unsigned int x, unsigned int y){
 }
 
 unsigned int lfsr_generate(unsigned int *seed) {
-    // taps: 6 5; feedback polynomial: x^6 + x^5 + 1
     unsigned int bit = ((*seed >> 1) ^ (*seed >> 2)) & 1;
-    *seed = (*seed >> 1) | (bit << 7); // Avanzamos el registro de desplazamiento
+    *seed = (*seed >> 1) | (bit << 7);
     return *seed;
 }
 
-void Create_apple(unsigned int *seed) {
-    unsigned int max_x = 33;
-    unsigned int max_y = 23;
-
+void apple_create(unsigned int *seed) {
+    unsigned int max_x = 33, max_y = 23;
     apple_x = lfsr_generate(seed) % (max_x + 1);
     apple_y = lfsr_generate(seed) % (max_y + 1);
-
-    set_pixel(apple_x, apple_y, 0x00FF0000);
-    set_pixel(apple_x + 1, apple_y, 0x00FF0000);
-    set_pixel(apple_x, apple_y + 1, 0x00FF0000);
-    set_pixel(apple_x + 1, apple_y + 1, 0x00FF0000);
+    set_pixel(apple_x, apple_y, APPLE_COLOR);
 }
 
-void Delete_apple() {
+void apple_delete() {
     set_pixel(apple_x, apple_y, 0x00000000);
-    set_pixel(apple_x + 1, apple_y, 0x00000000);
-    set_pixel(apple_x, apple_y + 1, 0x00000000);
-    set_pixel(apple_x + 1, apple_y + 1, 0x00000000);
 }
 
-void move_snake(unsigned int x, unsigned int y,Queue *q){
-    //int grow = create_snake(x,y); quiero que create snake me diga si toco la manzana
-    create_snake(x,y);
-    enQueue(q,x);
-    enQueue(q,y);
-    if (false){
-    x=deQueue(q);
-    y=deQueue(q);
-    delete_snake(x,y);
+void snake_move(unsigned int x, unsigned int y, Queue *q) {
+    if (x >= 35 || y >= 25 || x < 0 || y < 0) {
+        draw_game_over();
+        return;
     }
 
+    int collision = snake_create(x, y);
+    if (collision == 100) {
+        draw_game_over();
+        return;
     }
+
+    enQueue(q, x);
+    enQueue(q, y);
+
+    if (!collision) {
+        unsigned int old_x = deQueue(q);
+        unsigned int old_y = deQueue(q);
+        snake_delete(old_x, old_y);
+    } else {
+        unsigned int seed = 0x56;
+        apple_create(&seed);
+    }
+}
 
 void draw_game_over() {
     // G
