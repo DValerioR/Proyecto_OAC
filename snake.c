@@ -35,8 +35,8 @@ void main(){
     unsigned int klp = 0;
     unsigned int krp = 0;
     
-    unsigned int x = 17;
-    unsigned int y = 12;
+    unsigned int x = 16;
+    unsigned int y = 11;
     
     Queue q;
     initializeQueue(&q);
@@ -88,6 +88,7 @@ void set_pixel(unsigned int x, unsigned int y, unsigned int color){
     unsigned int offset = 0;
     offset = x + y*LED_MATRIX_0_WIDTH;
     address = led_base + offset;
+    
     *(address) = color;
 }
 
@@ -95,6 +96,8 @@ void create_snake(unsigned int x, unsigned int y){
     /*
     int hastouchaplle = set_pixel(x, y, 0x0000ff00); y queiro que me diga set pixel si algun pixel es manzana
     */
+   x+=1;
+   y+=1;
     set_pixel(x, y, 0x0000ff00);
     set_pixel(x + 1, y, 0x0000ff00);
     set_pixel(x, y + 1, 0x0000ff00);
