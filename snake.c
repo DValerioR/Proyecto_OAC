@@ -9,11 +9,12 @@
 #define SNAKE_COLOR 0x0000FF00
 #define APPLE_COLOR 0x00FF0000
 #define BLUE_COLOR 0x000000FF
+#define SW0 (0x01)
 
 typedef struct {
     int data[MAX_QUEUE_SIZE]; // Arreglo fijo para almacenar los elementos
-    int front;                // Índice del frente de la cola
-    int back;                 // Índice del final de la cola
+    int front;                // ?ndice del frente de la cola
+    int back;                 // ?ndice del final de la cola
     int size;                 // Cantidad de elementos en la cola
 } Queue;
 
@@ -35,11 +36,7 @@ bool isFull(Queue *q) {
 
 void enQueue(Queue *q, int value) {
     if (isFull(q)) {
-<<<<<<< HEAD
         printf("Error: La cola está llena\n");
-=======
-        printf("Error: La cola estÃ¡ llena\n");
->>>>>>> 577800186bf575cce059538bc220909662adea8d
         return;
     }
     q->back = (q->back + 1) % MAX_QUEUE_SIZE; // Movimiento circular
@@ -49,11 +46,7 @@ void enQueue(Queue *q, int value) {
 
 int deQueue(Queue *q) {
     if (isEmpty(q)) {
-<<<<<<< HEAD
         printf("Error: La cola está vacía\n");
-=======
-        printf("Error: La cola estÃ¡ vacÃ­a\n");
->>>>>>> 577800186bf575cce059538bc220909662adea8d
         return -1; // Indica error
     }
     int value = q->data[q->front];
@@ -70,13 +63,8 @@ int set_pixel(unsigned int x, unsigned int y, unsigned int color) {
 }
 
 void apple_create(unsigned int seed) {
-<<<<<<< HEAD
     unsigned int max_x = 34;  // El rango debe ser múltiplo de 2 para mantener pares
     unsigned int max_y = 24;  // Ajuste para mantener dentro del rango válido
-=======
-    unsigned int max_x = 34;  // El rango debe ser mÃºltiplo de 2 para mantener pares
-    unsigned int max_y = 24;  // Ajuste para mantener dentro del rango vÃ¡lido
->>>>>>> 577800186bf575cce059538bc220909662adea8d
     unsigned int apple_x, apple_y;
     unsigned int *led_base = LED_MATRIX_0_BASE;
     unsigned int offset;
@@ -84,40 +72,24 @@ void apple_create(unsigned int seed) {
 
     srand(seed);  // Inicializa la semilla de rand()
 
-<<<<<<< HEAD
     // Generar una nueva posición para la manzana
-=======
-    // Generar una nueva posiciÃ³n para la manzana
->>>>>>> 577800186bf575cce059538bc220909662adea8d
     do {
         apple_x = (rand() % ((max_x / 2) + 1)) * 2;  // Genera posiciones pares para apple_x
         apple_y = (rand() % ((max_y / 2) + 1)) * 2;  // Genera posiciones pares para apple_y
 
-<<<<<<< HEAD
         // Calcular la dirección de memoria correspondiente a la posición
-=======
-        // Calcular la direcciÃ³n de memoria correspondiente a la posiciÃ³n
->>>>>>> 577800186bf575cce059538bc220909662adea8d
         offset = apple_x + apple_y * LED_MATRIX_0_WIDTH;
         address = led_base + offset;
     } while (*address == SNAKE_COLOR);  // Evitar que la manzana aparezca sobre la serpiente
 
-<<<<<<< HEAD
     // Poner la manzana en la nueva posición
-=======
-    // Poner la manzana en la nueva posiciÃ³n
->>>>>>> 577800186bf575cce059538bc220909662adea8d
     set_pixel(apple_x, apple_y, APPLE_COLOR);
     set_pixel(apple_x + 1, apple_y, APPLE_COLOR);
     set_pixel(apple_x, apple_y + 1, APPLE_COLOR);
     set_pixel(apple_x + 1, apple_y + 1, APPLE_COLOR);
 }
 
-<<<<<<< HEAD
 // Función para eliminar una parte de la serpiente
-=======
-// FunciÃ³n para eliminar una parte de la serpiente
->>>>>>> 577800186bf575cce059538bc220909662adea8d
 void apple_delete(unsigned int x, unsigned int y) {
     // Borra la parte de la serpiente
     set_pixel(x, y, 0x00000000);
@@ -125,11 +97,7 @@ void apple_delete(unsigned int x, unsigned int y) {
     set_pixel(x, y + 1, 0x00000000);
     set_pixel(x + 1, y + 1, 0x00000000);
 
-<<<<<<< HEAD
     // Crear una nueva manzana en una nueva posición
-=======
-    // Crear una nueva manzana en una nueva posiciÃ³n
->>>>>>> 577800186bf575cce059538bc220909662adea8d
     apple_create(rand());  // Usa rand() para generar la semilla
 }
 
@@ -169,6 +137,39 @@ void snake_move(unsigned int x, unsigned int y, Queue *q) {
     unsigned int old_y = deQueue(q);
     snake_delete(old_x, old_y);
     }
+}
+
+// Limpiar la matriz LED
+void clear_screen() {
+    volatile unsigned int *screen = (volatile unsigned int *)LED_MATRIX_0_BASE; // Primer LED
+    for (int i = 0; i < LED_MATRIX_0_SIZE; i++) {
+        *screen = 0x00000000; // Color negro
+        screen++;
+    }
+}
+
+// Función para reiniciar el juego
+void reset_game(unsigned int *x, unsigned int *y, Queue *q) {
+    clear_screen(); // Limpia la pantalla
+    
+    // Reinicia las posiciones iniciales
+    *x = 16;
+    *y = 12;
+
+    // Reinicia la cola
+    initializeQueue(q);
+    enQueue(q, *x - 2);
+    enQueue(q, *y);
+    enQueue(q, *x);
+    enQueue(q, *y);
+
+    // Dibuja la serpiente inicial
+    snake_create(*x - 2, *y);
+    snake_create(*x, *y);
+
+    // Genera una nueva manzana
+    unsigned int seed = 0x48;
+    apple_create(seed);
 }
 
 void draw_game_over() {
@@ -266,35 +267,45 @@ void main() {
     unsigned int *down = (unsigned int *)D_PAD_0_DOWN;
     unsigned int *left = (unsigned int *)D_PAD_0_LEFT;
     unsigned int *right = (unsigned int *)D_PAD_0_RIGHT;
+    unsigned int *switch_base = (unsigned int *)SWITCHES_0_BASE;
 
-    unsigned int kup = 0, kdp = 0, klp = 0, krp = 0;
+    unsigned int kup = 0, kdp = 0, klp = 0, krp = 1;
 
     unsigned int x = 16, y = 12;
     Queue q;
     initializeQueue(&q);
-<<<<<<< HEAD
     enQueue(&q, x - 2);
     enQueue(&q, y);
     enQueue(&q, x);
     enQueue(&q, y);
     snake_create(x - 2, y);
-=======
-    enQueue(&q, x-2);
-    enQueue(&q, y);
-    enQueue(&q, x);
-    enQueue(&q, y);
-    snake_create(x-2, y);
->>>>>>> 577800186bf575cce059538bc220909662adea8d
     snake_create(x, y);
 
     unsigned int seed = 0x48;
     apple_create(seed);
 
-<<<<<<< HEAD
-    // Configurar dirección inicial (derecha)
-    krp = 1;
+    int game_over = 0; // Variable para controlar el estado del juego
+    int prev_switch_state = 0; // Variable para el estado previo del switch
 
     while (1) {
+        // Leer el estado actual del switch SW0
+        int current_switch_state = (*switch_base & SW0);
+
+        // Detectar flanco ascendente del switch SW0
+        if (current_switch_state != 0 && prev_switch_state == 0) {
+            reset_game(&x, &y, &q);
+            game_over = 0; // Reiniciar el estado del juego
+        }
+
+        // Actualizar el estado previo del switch
+        prev_switch_state = current_switch_state;
+
+        if (game_over) {
+            // Si el juego ha terminado, detener el movimiento de la serpiente,
+            // pero permitir la detección del switch para reiniciar.
+            continue;
+        }
+
         // Detectar entrada del jugador para cambiar dirección
         if (*up && !kup && kdp == 0) {
             kup = 1;
@@ -314,25 +325,29 @@ void main() {
         if (kup) {
             if (y == 0) {
                 draw_game_over();
-                exit(0);
+                game_over = 1; // Cambiar el estado del juego a "terminado"
+                continue;
             }
             y -= 2;
         } else if (kdp) {
             if (y > 24) {
                 draw_game_over();
-                exit(0);
+                game_over = 1;
+                continue;
             }
             y += 2;
         } else if (klp) {
             if (x == 0) {
                 draw_game_over();
-                exit(0);
+                game_over = 1;
+                continue;
             }
             x -= 2;
         } else if (krp) {
             if (x > 34) {
                 draw_game_over();
-                exit(0);
+                game_over = 1;
+                continue;
             }
             x += 2;
         }
@@ -342,44 +357,6 @@ void main() {
 
         // Introducir un retraso para controlar la velocidad de movimiento
         for (volatile int delay = 0; delay < 5000; delay++);
-=======
-    while (1) {
-        int moved = 0;
-
-        // Detectar entrada del jugador
-        if (*up && !kup) {
-         kup = 1;
-         if(y==0){
-            draw_game_over();exit(0);}
-         y=y-2;
-         snake_move(x, y, &q);
-        }if (*down && !kdp) {
-           kdp = 1; 
-           y=y+2;
-           if(y>24){
-            draw_game_over();
-            exit(0);}
-           snake_move(x, y, &q);
-        }if (*left && !klp) {
-            klp = 1;
-            if(x==0){
-            draw_game_over();
-            exit(0);}
-            x=x-2;
-            snake_move(x, y, &q);
-        }if (*right && !krp) {
-            krp = 1;
-            x=x+2;
-            if(x>34){
-            draw_game_over();
-            exit(0);}
-            snake_move(x, y, &q);
-        }
-        // Resetear los estados de los botones
-       if (*up == 0) kup = 0;
-        if (*down == 0) kdp = 0;
-        if (*left == 0) klp = 0;
-        if (*right == 0) krp = 0;
->>>>>>> 577800186bf575cce059538bc220909662adea8d
     }
 }
+
